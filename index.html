@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>專注小森林</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mist: #DCE7E0;
+    --paper: #F4F8F3;
+    --ink: #173A2E;
+    --leaf: #2F8F5B;
+    --sun: #F4B942;
+    --dead: #8C8272;
+    --danger: #B4432F;
+    --ground: #B9CDBF;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--mist);
+    color: var(--ink);
+    font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .app {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 20px 56px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  h1 { margin: 0 0 4px; font-size: 2rem; font-weight: 900; letter-spacing: .02em; }
+  .lead { margin: 0; max-width: 34em; }
+
+  .stage {
+    background: var(--paper);
+    border-radius: 28px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .scene { width: min(300px, 70vw); aspect-ratio: 1; }
+  .scene svg { width: 100%; height: 100%; display: block; }
+  .time {
+    font-size: 4rem;
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .status { margin: 0; min-height: 1.6em; text-align: center; }
+
+  .setup { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+  .setup[hidden] { display: none; }
+  .field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
+  input[type="text"], input[type="number"] {
+    font: inherit;
+    color: inherit;
+    background: #fff;
+    border: 2px solid var(--ground);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  input[type="number"] { width: 5.5em; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip {
+    font: inherit;
+    font-weight: 700;
+    color: var(--ink);
+    background: transparent;
+    border: 2px solid var(--ground);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+  }
+  .chip[aria-checked="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+  .custom { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+
+  button { font: inherit; }
+  .primary {
+    width: 100%;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--paper);
+    background: var(--ink);
+    border: 0;
+    border-radius: 16px;
+    padding: 14px;
+    cursor: pointer;
+  }
+  .primary.danger { background: var(--danger); }
+  .quiet {
+    font-weight: 700;
+    color: var(--ink);
+    background: transparent;
+    border: 2px solid var(--ground);
+    border-radius: 999px;
+    padding: 6px 16px;
+    cursor: pointer;
+  }
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--sun);
+    outline-offset: 2px;
+  }
+
+  .forest-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  h2 { margin: 0; font-size: 1.4rem; font-weight: 900; }
+  #stats { margin: 0; font-weight: 700; }
+  .grid {
+    margin: 14px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 10px;
+  }
+  .cell {
+    background: var(--paper);
+    border-radius: 14px;
+    padding: 6px 4px 8px;
+    text-align: center;
+    font-size: .8rem;
+    font-weight: 700;
+  }
+  .cell svg { width: 100%; display: block; }
+  .cell.dead { color: var(--dead); }
+  .empty { grid-column: 1 / -1; margin: 0; padding: 24px 0; }
+
+  .week {
+    display: flex;
+    gap: 8px;
+    height: 120px;
+    margin: 14px 0 0;
+    padding: 10px 10px 6px;
+    background: var(--paper);
+    border-radius: 14px;
+  }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .75rem; font-weight: 700; }
+  .col em { font-style: normal; min-height: 1.2em; }
+  .bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+  .bar { width: 100%; min-height: 3px; background: var(--leaf); opacity: .5; border-radius: 6px 6px 2px 2px; }
+  .col.today .bar { opacity: 1; }
+  .col.today span { text-decoration: underline; text-decoration-color: var(--sun); text-decoration-thickness: 3px; text-underline-offset: 3px; }
+  .week-title { margin: 14px 0 0; font-weight: 700; }
+
+  @keyframes pop { 0% { transform: scale(.88); } 55% { transform: scale(1.07); } 100% { transform: scale(1); } }
+  .scene.pop { animation: pop .6s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .scene.pop { animation: none; } }
+
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .time { font-size: 3.2rem; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div>
+      <h1>專注小森林</h1>
+      <p class="lead">設定一段時間，專心做一件事，樹就會慢慢長大。中途放棄的話，樹會枯掉。</p>
+    </div>
+    <button class="quiet" id="sound" aria-pressed="true">音效：開</button>
+  </header>
+
+  <section class="stage" aria-label="專注計時">
+    <div class="scene" id="scene" aria-hidden="true"></div>
+    <div class="time" id="time" role="timer">25:00</div>
+    <p class="status" id="status" aria-live="polite">選好時間，種下一顆種子。</p>
+
+    <div class="setup" id="setup">
+      <label class="field">要專心做什麼？
+        <input type="text" id="task" maxlength="30" placeholder="例如：寫報告第二段">
+      </label>
+      <div class="chips" role="radiogroup" aria-label="專注時間">
+        <button class="chip" role="radio" aria-checked="false" data-min="0.1667">10 秒（測試）</button>
+        <button class="chip" role="radio" aria-checked="false" data-min="15">15 分鐘</button>
+        <button class="chip" role="radio" aria-checked="true" data-min="25">25 分鐘</button>
+        <button class="chip" role="radio" aria-checked="false" data-min="45">45 分鐘</button>
+        <label class="custom">自訂
+          <input type="number" id="custom" min="1" max="180" inputmode="numeric" aria-label="自訂分鐘數">
+          分鐘
+        </label>
+      </div>
+    </div>
+    <button class="primary" id="main">開始種樹</button>
+    <button class="quiet" id="rest" hidden>休息 5 分鐘</button>
+  </section>
+
+  <section aria-label="我的森林">
+    <div class="forest-head">
+      <h2>我的森林</h2>
+      <p id="stats"></p>
+    </div>
+    <p class="week-title" id="weekTitle">近 7 天專注分鐘</p>
+    <div class="week" id="week" role="img" aria-labelledby="weekTitle"></div>
+    <div class="grid" id="grid"></div>
+    <button class="quiet" id="clear">清空森林</button>
+  </section>
+</main>
+
+<script>
+(function () {
+  var STORE_KEY = "focus-forest-v1";
+  var COLORS = {
+    round:  ["#2F8F5B", "#47A870"],
+    pine:   ["#1F6B4A", "#2C855D", "#3B9C6E"],
+    sakura: ["#F2A7BE", "#F7BFD0", "#EE93AE"]
+  };
+  var KIND_NAME = { round: "灌木", pine: "松樹", sakura: "櫻花樹" };
+
+  var $ = function (id) { return document.getElementById(id); };
+  var scene = $("scene"), timeEl = $("time"), statusEl = $("status");
+  var setup = $("setup"), mainBtn = $("main"), taskEl = $("task"), customEl = $("custom");
+  var grid = $("grid"), statsEl = $("stats");
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip"));
+
+  var selected = 25;       // 分鐘
+  var state = "idle";      // idle | running | ended
+  var run = null;
+  var timer = null;
+  var audioCtx = null;
+  var rest = null;         // 休息模式的計時資料
+  var SOUND_KEY = "focus-forest-sound";
+  var soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== "off"; } catch (e) {}
+  var restBtn = $("rest"), soundBtn = $("sound"), weekEl = $("week");
+
+  /* ---------- 儲存 ---------- */
+  function load() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch (e) { return []; }
+  }
+  function save(list) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(list)); } catch (e) {}
+  }
+
+  /* ---------- 畫樹 ---------- */
+  function kindFor(min) {
+    if (min >= 45) return "sakura";
+    if (min >= 25) return "pine";
+    return "round";
+  }
+
+  function treeInner(kind, p, dead) {
+    var trunkH = p < 0.05 ? 0 : 4 + 32 * Math.min(1, p * 1.6);
+    var topY = 88 - trunkH;
+    var s = Math.max(0, (p - 0.12) / 0.88);
+    var trunkColor = dead ? "#6B5B4B" : "#6B4A2F";
+    var c = dead ? ["#9A8F7A", "#A89D88", "#8C8272"] : COLORS[kind];
+    var out = '<ellipse cx="50" cy="90" rx="30" ry="5" fill="#B9CDBF"/>';
+    var tree = "";
+
+    if (p < 0.12) {
+      tree += '<ellipse cx="50" cy="88" rx="9" ry="3.5" fill="#8A6A4A"/>';
+      tree += '<circle cx="50" cy="85.5" r="2.2" fill="#5A3E26"/>';
+    } else {
+      tree += '<rect x="47" y="' + topY + '" width="6" height="' + (trunkH + 2) + '" rx="2" fill="' + trunkColor + '"/>';
+      tree += '<g transform="translate(50 ' + (topY + 2) + ') scale(' + s.toFixed(3) + ')">';
+      if (kind === "round") {
+        tree += '<circle cx="0" cy="-8" r="26" fill="' + c[0] + '"/>';
+        tree += '<circle cx="-8" cy="-14" r="14" fill="' + c[1] + '"/>';
+      } else if (kind === "pine") {
+        tree += '<polygon points="0,-48 -20,-12 20,-12" fill="' + c[2] + '"/>';
+        tree += '<polygon points="0,-36 -25,2 25,2" fill="' + c[1] + '"/>';
+        tree += '<polygon points="0,-22 -30,16 30,16" fill="' + c[0] + '"/>';
+      } else {
+        tree += '<circle cx="-14" cy="-4" r="18" fill="' + c[0] + '"/>';
+        tree += '<circle cx="14" cy="-4" r="18" fill="' + c[2] + '"/>';
+        tree += '<circle cx="0" cy="-20" r="20" fill="' + c[1] + '"/>';
+      }
+      tree += '</g>';
+    }
+    if (dead) tree = '<g transform="rotate(7 50 88)">' + tree + '</g>';
+    return out + tree;
+  }
+
+  function sceneSVG(kind, p, dead) {
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="78" cy="26" r="14" fill="#F4B942"/>' +
+      treeInner(kind, p, dead) + '</svg>';
+  }
+  function cellSVG(kind, dead) {
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+      treeInner(kind, 1, dead) + '</svg>';
+  }
+
+  /* ---------- 顯示 ---------- */
+  function fmt(ms) {
+    var total = Math.max(0, Math.ceil(ms / 1000));
+    var m = Math.floor(total / 60), s = total % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function getMinutes() {
+    var v = parseFloat(customEl.value);
+    if (customEl.value !== "" && v >= 1 && v <= 180) return v;
+    return selected;
+  }
+
+  function showIdle() {
+    var min = getMinutes();
+    scene.innerHTML = sceneSVG(kindFor(min), 0, false);
+    timeEl.textContent = fmt(min * 60000);
+    document.title = "專注小森林";
+  }
+
+  function renderForest() {
+    var list = load();
+    var today = new Date().toDateString();
+    var okToday = 0, minutes = 0;
+    list.forEach(function (r) {
+      if (r.ok) {
+        minutes += r.minutes;
+        if (new Date(r.ts).toDateString() === today) okToday++;
+      }
+    });
+    // 連續天數：從今天往回算，今天還沒種的話從昨天開始
+    var okDays = {};
+    var perDay = {};
+    list.forEach(function (r) {
+      if (!r.ok) return;
+      var k = new Date(r.ts).toDateString();
+      okDays[k] = true;
+      perDay[k] = (perDay[k] || 0) + r.minutes;
+    });
+    var streak = 0, cur = new Date();
+    if (!okDays[cur.toDateString()]) cur.setDate(cur.getDate() - 1);
+    while (okDays[cur.toDateString()]) { streak++; cur.setDate(cur.getDate() - 1); }
+    statsEl.textContent = "今天 " + okToday + " 棵・累積 " + Math.round(minutes) + " 分鐘・連續 " + streak + " 天";
+
+    // 近 7 天長條圖
+    var days = [], maxMin = 30, i;
+    for (i = 6; i >= 0; i--) {
+      var d = new Date(); d.setDate(d.getDate() - i);
+      var m = perDay[d.toDateString()] || 0;
+      days.push({ d: d, m: m, today: i === 0 });
+      if (m > maxMin) maxMin = m;
+    }
+    var names = "日一二三四五六", html = "", summary = [];
+    days.forEach(function (x) {
+      var label = names.charAt(x.d.getDay());
+      var shown = Math.round(x.m);
+      summary.push((x.d.getMonth() + 1) + "/" + x.d.getDate() + " " + shown + " 分鐘");
+      html += '<div class="col' + (x.today ? ' today' : '') + '" title="' + (x.d.getMonth() + 1) + '/' + x.d.getDate() + '：' + shown + ' 分鐘">' +
+        '<em>' + (shown > 0 ? shown : '') + '</em>' +
+        '<div class="bar-wrap"><div class="bar" style="height:' + Math.max(0, x.m / maxMin * 100).toFixed(1) + '%"></div></div>' +
+        '<span>' + label + '</span></div>';
+    });
+    weekEl.innerHTML = html;
+    weekEl.setAttribute("aria-label", summary.join("，"));
+
+    grid.innerHTML = "";
+    if (!list.length) {
+      var p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = "森林還是空的。完成一次專注，種下第一棵樹。";
+      grid.appendChild(p);
+      return;
+    }
+    list.slice().reverse().slice(0, 60).forEach(function (r) {
+      var d = document.createElement("div");
+      d.className = "cell" + (r.ok ? "" : " dead");
+      var when = new Date(r.ts).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      d.title = when + "｜" + (r.task || "未命名") + "｜" + (r.ok ? "完成" : "放棄");
+      d.innerHTML = cellSVG(r.kind, !r.ok);
+      var label = document.createElement("div");
+      label.textContent = r.minutes < 1 ? "測試" : Math.round(r.minutes) + " 分";
+      d.appendChild(label);
+      grid.appendChild(d);
+    });
+  }
+
+  /* ---------- 計時 ---------- */
+  function tick() {
+    var elapsed = Date.now() - run.start;
+    var p = Math.min(1, elapsed / run.total);
+    scene.innerHTML = sceneSVG(run.kind, p, false);
+    var left = run.total - elapsed;
+    timeEl.textContent = fmt(left);
+    document.title = fmt(left) + "｜專注小森林";
+    if (p >= 1) finish();
+  }
+
+  function beep() {
+    try {
+      if (!soundOn || !audioCtx) return;
+      [660, 880].forEach(function (f, i) {
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.frequency.value = f; o.type = "sine";
+        o.connect(g); g.connect(audioCtx.destination);
+        var t = audioCtx.currentTime + i * 0.22;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.25, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+        o.start(t); o.stop(t + 0.22);
+      });
+    } catch (e) {}
+  }
+
+  function addRecord(ok) {
+    var list = load();
+    list.push({ ts: Date.now(), minutes: run.total / 60000, task: run.task, kind: run.kind, ok: ok });
+    save(list);
+    renderForest();
+  }
+
+  function start() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC && !audioCtx) audioCtx = new AC();
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    } catch (e) {}
+    var min = getMinutes();
+    run = { start: Date.now(), total: min * 60000, task: taskEl.value.trim(), kind: kindFor(min) };
+    state = "running";
+    setup.hidden = true;
+    mainBtn.textContent = "放棄（樹會枯掉）";
+    mainBtn.classList.add("danger");
+    statusEl.textContent = run.task ? "專心做：" + run.task : "專心中，樹正在長大。";
+    tick();
+    timer = setInterval(tick, 250);
+  }
+
+  function finish() {
+    clearInterval(timer);
+    scene.innerHTML = sceneSVG(run.kind, 1, false);
+    timeEl.textContent = "00:00";
+    document.title = "完成！｜專注小森林";
+    addRecord(true);
+    beep();
+    state = "ended";
+    statusEl.textContent = "種好了！這棵" + KIND_NAME[run.kind] + "已經加進你的森林。";
+    mainBtn.textContent = "再種一棵";
+    mainBtn.classList.remove("danger");
+    scene.classList.remove("pop");
+    void scene.offsetWidth;          // 重新觸發動畫
+    scene.classList.add("pop");
+    restBtn.textContent = run.total < 60000 ? "休息 10 秒（測試）" : "休息 5 分鐘";
+    restBtn.hidden = false;
+  }
+
+  /* ---------- 休息模式 ---------- */
+  function restSVG() {
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">' +
+      '<circle cx="78" cy="26" r="14" fill="#F4B942"/>' +
+      '<ellipse cx="50" cy="90" rx="30" ry="5" fill="#B9CDBF"/>' +
+      '<path d="M32 52 h36 v20 a14 14 0 0 1 -14 14 h-8 a14 14 0 0 1 -14 -14 z" fill="#F4F8F3" stroke="#173A2E" stroke-width="3"/>' +
+      '<path d="M68 58 h5 a7 7 0 0 1 0 14 h-6" fill="none" stroke="#173A2E" stroke-width="3"/>' +
+      '<path d="M42 44 q-4 -6 0 -12 M52 44 q-4 -6 0 -12 M62 44 q-4 -6 0 -12" fill="none" stroke="#8C8272" stroke-width="2.5" stroke-linecap="round"/>' +
+      '</svg>';
+  }
+
+  function restTick() {
+    var left = rest.total - (Date.now() - rest.start);
+    timeEl.textContent = fmt(left);
+    document.title = fmt(left) + "｜休息中";
+    if (left <= 0) finishRest();
+  }
+
+  function startRest() {
+    rest = { start: Date.now(), total: run && run.total < 60000 ? 10000 : 5 * 60000 };
+    state = "resting";
+    restBtn.hidden = true;
+    scene.classList.remove("pop");
+    scene.innerHTML = restSVG();
+    statusEl.textContent = "休息中，站起來伸展一下，喝點水。";
+    mainBtn.textContent = "跳過休息";
+    mainBtn.classList.remove("danger");
+    restTick();
+    timer = setInterval(restTick, 250);
+  }
+
+  function finishRest() {
+    clearInterval(timer);
+    timeEl.textContent = "00:00";
+    document.title = "專注小森林";
+    beep();
+    state = "ended";
+    statusEl.textContent = "休息結束，準備好就種下一棵。";
+    mainBtn.textContent = "再種一棵";
+  }
+
+  function giveUp() {
+    clearInterval(timer);
+    var p = Math.min(1, (Date.now() - run.start) / run.total);
+    scene.innerHTML = sceneSVG(run.kind, Math.max(p, 0.3), true);
+    addRecord(false);
+    state = "ended";
+    document.title = "專注小森林";
+    statusEl.textContent = "樹枯掉了。休息一下，再試一次。";
+    mainBtn.textContent = "重新開始";
+    mainBtn.classList.remove("danger");
+  }
+
+  function reset() {
+    clearInterval(timer);
+    state = "idle";
+    restBtn.hidden = true;
+    scene.classList.remove("pop");
+    setup.hidden = false;
+    statusEl.textContent = "選好時間，種下一顆種子。";
+    mainBtn.textContent = "開始種樹";
+    showIdle();
+  }
+
+  /* ---------- 事件 ---------- */
+  // 兩段式確認：第一次按先「上膛」，4 秒內再按一次才執行
+  // （不用 confirm()，因為嵌入式預覽視窗常會封鎖它）
+  function twoStep(btn, armedText, action) {
+    if (btn._armed) {
+      clearTimeout(btn._armTimer);
+      btn._armed = false;
+      btn.textContent = btn._origText;
+      action();
+      return;
+    }
+    btn._armed = true;
+    btn._origText = btn.textContent;
+    btn.textContent = armedText;
+    btn._armTimer = setTimeout(function () {
+      btn._armed = false;
+      btn.textContent = btn._origText;
+    }, 4000);
+  }
+
+  mainBtn.addEventListener("click", function () {
+    if (state === "idle") start();
+    else if (state === "running") twoStep(mainBtn, "再按一次確認放棄", giveUp);
+    else reset();   // 結束後、休息中（跳過休息）都回到設定畫面
+  });
+
+  restBtn.addEventListener("click", startRest);
+
+  function showSound() {
+    soundBtn.textContent = "音效：" + (soundOn ? "開" : "關");
+    soundBtn.setAttribute("aria-pressed", soundOn ? "true" : "false");
+  }
+  soundBtn.addEventListener("click", function () {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? "on" : "off"); } catch (e) {}
+    showSound();
+  });
+  showSound();
+
+  chips.forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      selected = parseFloat(chip.getAttribute("data-min"));
+      customEl.value = "";
+      chips.forEach(function (c) { c.setAttribute("aria-checked", c === chip ? "true" : "false"); });
+      if (state === "idle") showIdle();
+    });
+  });
+
+  customEl.addEventListener("input", function () {
+    var v = parseFloat(customEl.value);
+    if (v >= 1 && v <= 180) {
+      chips.forEach(function (c) { c.setAttribute("aria-checked", "false"); });
+    }
+    if (state === "idle") showIdle();
+  });
+
+  var clearBtn = $("clear");
+  clearBtn.addEventListener("click", function () {
+    if (!load().length) return;
+    twoStep(clearBtn, "再按一次確認清空", function () {
+      save([]);
+      renderForest();
+    });
+  });
+
+  window.addEventListener("beforeunload", function (e) {
+    if (state === "running") { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  /* ---------- 開始 ---------- */
+  showIdle();
+  renderForest();
+})();
+</script>
+</body>
+</html>
